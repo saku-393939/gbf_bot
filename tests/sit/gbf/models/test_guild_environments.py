@@ -173,7 +173,7 @@ class TestGuildEnvironments:
                 async_db_session.add(actual)
             await async_db_session.commit()
             for actual in data2_list:
-                async_db_session.refresh(actual)
+                await async_db_session.refresh(actual)
 
             results = await GuildEnvironments.select_all(
                 async_db_session,

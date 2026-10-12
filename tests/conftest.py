@@ -15,8 +15,8 @@ def auto001_load_env():
     load_dotenv(override=True, dotenv_path=env_path)
 
 
-@pytest.fixture(scope="session")
-def engine():
+@pytest_asyncio.fixture(scope="session")
+async def engine():
     """テストDBエンジンを生成する
 
     Returns:
@@ -30,8 +30,10 @@ def engine():
 
     URL = f'postgresql+asyncpg://{DBUSER}:{DBPASSWORD}@{DBHOST}/{DBDATABASE}'
     engine = create_async_engine(URL, echo=True)
-    yield engine
-    engine.sync_engine.dispose()
+    try:
+        yield engine
+    finally:
+        await engine.dispose()
 
 
 @pytest_asyncio.fixture
@@ -57,23 +59,7 @@ async def async_db_session(engine, create_temp_table):
         AsyncSession: DBセッション
     """
     async_session = AsyncSession(bind=engine)
-    yield async_session
-    async_session.close_all()
-
-
-@pytest.fixture(scope='session')
-def event_loop():
-    """pytest-asyncioで使用するasyncio.event_loop
-        pytest-asyncioの標準のevent_loopを上書きすることで
-        関数スコープ→テストセッションスコープへと変更
-        これにより全テストでDBセッションが複数回発生しない
-
-    Yields:
-        _type_: _description_
-    """
-
-    loop = asyncio.new_event_loop()
     try:
-        yield loop
+        yield async_session
     finally:
-        loop.close()
+        await async_session.close()
